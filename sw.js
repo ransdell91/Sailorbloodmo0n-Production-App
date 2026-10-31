@@ -1,7 +1,7 @@
 // SailorBloodMo0n Production: offline support.
 // The app shell is cached so the app opens without a connection.
 // Data is never cached here; the app keeps its own copy of the last-loaded plan.
-const VERSION = 'sbm-v1';
+const VERSION = 'sbm-v2';
 const SHELL = [
   './',
   './index.html',
