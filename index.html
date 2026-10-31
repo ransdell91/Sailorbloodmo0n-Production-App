@@ -449,7 +449,7 @@ async function start(){
   /* A pass-through lock: the browser lock in supabase-js can stall on Android and freeze every request. */
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,lock:function(name,timeout,fn){return fn();}}});
   sb.auth.onAuthStateChange(function(ev,session){
-    var had=!!S.session;S.session=session;
+    var had=!!S.session;S.session=session;if(session&&had&&ev==='USER_UPDATED')render();
     /* Never call Supabase inside this callback; defer it. */
     if(session&&!had){S.signin={email:'',sent:false,busy:false,msg:'',mode:S.signin.mode};setTimeout(connect,0);}
     if(!session&&ev==='SIGNED_OUT'){S.dbState='signedout';render();}
@@ -465,7 +465,7 @@ window.addEventListener('online',function(){if(sb&&S.session){flushWait=3000;flu
 window.addEventListener('offline',function(){if(S.dbState==='ready'){S.dbState='offline';render();}});
 
 /* ---------- sign-in ---------- */
-function siMode(){return S.signin.mode||lsGet('sbm-signinMode','link');}
+function siMode(){return S.signin.mode||lsGet('sbm-signinMode','password');}
 async function sendLink(email){
   S.signin.busy=true;S.signin.msg='';render();
   var r=await sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:true}});
@@ -484,7 +484,7 @@ async function signInPassword(email,pw){
   S.signin.busy=true;S.signin.msg='';S.signin.email=email;render();
   var r=await sb.auth.signInWithPassword({email:email,password:pw});
   S.signin.busy=false;
-  if(r.error){S.signin.msg=/invalid/i.test(r.error.message||'')?'That email and password don’t match. If you haven’t set a password yet, sign in with an email link, then set one under Account.':(/rate/i.test(r.error.message||'')?'Too many tries. Wait a minute, then try again.':'Couldn’t sign in. Check your connection and try again.');render();return;}
+  if(r.error){S.signin.msg=/invalid/i.test(r.error.message||'')?'That email and password don’t match. Use the temporary password Rian sent you, or sign in with an email link.':(/rate/i.test(r.error.message||'')?'Too many tries. Wait a minute, then try again.':'Couldn’t sign in. Check your connection and try again.');render();return;}
   lsSet('sbm-signinMode','password');
 }
 async function setPassword(p1){
@@ -506,12 +506,30 @@ function viewSignIn(){
   }
   return '<div class="wrap signin"><div class="sihead">'+LOGO+'<div class="eyebrow">SAILORBLOODMO0N</div><h1>Sign in</h1><p class="sub" style="margin:0">Only approved team members can sign in.</p></div>'+msg+body+'</div>';
 }
+function mustChange(){var u=S.session&&S.session.user;return !!(u&&u.user_metadata&&u.user_metadata.must_change_password);}
+function viewNewPassword(){
+  var em=S.session&&S.session.user?S.session.user.email:'',m=S.ui.pwMsg?'<div class="notice warn">'+esc(S.ui.pwMsg)+'</div>':'';
+  return '<div class="wrap signin"><div class="sihead">'+LOGO+'<div class="eyebrow">WELCOME</div><h1>Create your password</h1><p class="sub" style="margin:0">You signed in as <strong>'+esc(em)+'</strong> with a temporary password. Choose your own before you start. You’ll use it from now on.</p></div>'+m+
+    '<form data-form="firstpw" class="stack"><label class="field">New password<input id="np1" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters"></label><label class="field">Type it again<input id="np2" type="password" autocomplete="new-password" minlength="8" required></label><button class="btn" type="submit"'+(S.ui.pwBusy?' disabled':'')+'>'+(S.ui.pwBusy?'Saving…':'Save and continue')+'</button></form><button class="linkbtn" type="button" data-sact="signout" style="align-self:center">Sign out</button></div>';
+}
+async function firstPassword(p1,p2){
+  S.ui.pwMsg='';
+  if(p1.length<8){S.ui.pwMsg='Use at least 8 characters.';render();return;}
+  if(p1!==p2){S.ui.pwMsg='The two passwords don’t match.';render();return;}
+  S.ui.pwBusy=true;render();
+  var r=await sb.auth.updateUser({password:p1,data:{must_change_password:false}});
+  S.ui.pwBusy=false;
+  if(r.error){S.ui.pwMsg=/same/i.test(r.error.message||'')?'Pick a password different from the temporary one.':'Couldn’t save it: '+(r.error.message||'try again')+'.';render();return;}
+  if(r.data&&r.data.user&&S.session)S.session.user=r.data.user;
+  lsSet('sbm-signinMode','password');render();toast('Password saved.');
+}
 function viewDenied(){var em=S.session&&S.session.user?S.session.user.email:'';return '<div class="wrap signin"><div class="sihead">'+LOGO+'<h1>No access yet</h1><p class="sub">'+esc(em)+' isn’t on this app’s member list. Ask Rian to add it, then reload.</p></div><button class="btn quiet" type="button" data-sact="signout">Sign out</button></div>';}
 document.addEventListener('submit',function(ev){
-  var f=ev.target.closest('[data-form="signin"],[data-form="code"],[data-form="pwsignin"],[data-form="setpw"]');if(!f)return;ev.preventDefault();ev.stopImmediatePropagation();
+  var f=ev.target.closest('[data-form="signin"],[data-form="code"],[data-form="pwsignin"],[data-form="setpw"],[data-form="firstpw"]');if(!f)return;ev.preventDefault();ev.stopImmediatePropagation();
   var k=f.getAttribute('data-form');
   if(k==='pwsignin'){var e0=(document.getElementById('si-email').value||'').trim(),p0=document.getElementById('si-pw').value||'';if(e0&&p0)signInPassword(e0,p0);return;}
   if(k==='setpw'){setPassword(document.getElementById('pw-new').value||'');return;}
+  if(k==='firstpw'){firstPassword(document.getElementById('np1').value||'',document.getElementById('np2').value||'');return;}
   if(k==='signin'){var em=(document.getElementById('si-email').value||'').trim();if(em)sendLink(em);return;}
   var c=(document.getElementById('si-code').value||'').replace(/\D/g,'');if(c)verifyCode(c);
 },true);
@@ -848,9 +866,10 @@ function submitSheet(form){
 
 /* ---------- render ---------- */
 function render(){
-  var el=document.getElementById('view'),gate=S.dbState==='signedout'||S.dbState==='denied'||(S.dbState==='error'&&!sb&&!S.cachedAt);
+  var el=document.getElementById('view'),need=S.dbState!=='signedout'&&mustChange(),gate=need||S.dbState==='signedout'||S.dbState==='denied'||(S.dbState==='error'&&!sb&&!S.cachedAt);
   document.body.classList.toggle('gate',gate);
-  if(gate){document.getElementById('nav').innerHTML='';el.innerHTML=S.dbState==='denied'?viewDenied():viewSignIn();return;}
+  if(gate){document.getElementById('nav').innerHTML='';var html=need?viewNewPassword():S.dbState==='denied'?viewDenied():viewSignIn();if(el.getAttribute('data-gate')!==html){el.innerHTML=html;el.setAttribute('data-gate',html);}return;}
+  el.removeAttribute('data-gate');
   build();
   var r=route(),h;
   renderNav(r.v);
