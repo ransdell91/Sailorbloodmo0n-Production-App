@@ -352,7 +352,7 @@ function nextOpenSlot(from){for(var i=0;i<120;i++){var d=addD(from,i);if(sett().
 function queueDays(d){var n=0;for(var i=0;i<14;i++){var x=addD(d,i);if(sett().shortDays.indexOf(dow(x))<0)continue;var ok=shortsOn(x).some(function(s){return s.status==='scheduled'||s.status==='posted';});if(!ok)break;n=i+1;}return n;}
 
 /* ---------- data (Supabase) ---------- */
-var SB_URL='__SB_URL__', SB_KEY='__SB_KEY__';
+var SB_URL='https://huhxdmqnkohdmrkpfyyt.supabase.co', SB_KEY='sb_publishable_Lw6FRELjXJSqtFB-_IyHhw_vD9MtR0j';
 var COLS=['videos','shorts','ideas','stories','tasks','checks'], CACHE_KEY='sbm-cache-v1', OUT_KEY='sbm-outbox-v1', sb=null, chan=null, rT=null;
 S.session=null; S.signin={email:'',sent:false,busy:false,msg:'',mode:null}; S.cachedAt=null; S.outbox=[]; S.saveErr=false;
 /* Changes are saved on the phone first (the outbox), then sent to Supabase in order and retried until they land. */

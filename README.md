@@ -3,7 +3,7 @@
 The production planner for the [SailorBloodMo0n](https://www.youtube.com/@sailorbloodmo0n) channel, as an installable web app: the monthly Anime News Roundup, the monthly video essay, and 16 shorts a month.
 
 - **App:** https://ransdell91.github.io/Sailorbloodmo0n-Production-App/
-- **Data:** a Supabase project in the SailorBloodMo0n organization (table `public.items`, members in `public.members`)
+- **Data:** Supabase project `huhxdmqnkohdmrkpfyyt` (SBM Production App) (table `public.items`, members in `public.members`)
 - **Sign-in:** email link, 6-digit code, or password. Only addresses in `public.members` can read or change anything.
 
 ## What it does
