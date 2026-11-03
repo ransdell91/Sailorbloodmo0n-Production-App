@@ -1,3 +1,5 @@
+> **Moved.** This app now lives inside the R&A app: https://ransdell91.github.io/RA-Media-App/ (repo `ransdell91/RA-Media-App`). This repo only redirects there.
+
 # SailorBloodMo0n Production
 
 The production planner for the [SailorBloodMo0n](https://www.youtube.com/@sailorbloodmo0n) channel, as an installable web app: the monthly Anime News Roundup, the monthly video essay, and 16 shorts a month.
